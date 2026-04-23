@@ -7,129 +7,50 @@
 
 import SwiftUI
 
-//struct Contact: Identifiable, Hashable {
-//    var id = UUID()
-//    var firstName: String
-//    var lastName: String
-//    var imageName: String
-//    var relationship: Relationship
-//    var memoryCue: String
-//    var phoneNumber: String
-//    var isMe: Bool
-//    
-//    var fullName: String {
-//        "\(firstName) \(lastName)"
-//    }
-//
-//    var sectionTitle: String {
-//        String(firstName.prefix(1))
-//    }
-//}
-//
-//enum Relationship: Equatable  {
-//    case social
-//    case friend
-//    case work
-//    case family
-//    case closeFriend
-//    case service
-//    
-//    var label: String { //for filter
-//        switch self {
-//        case .social:      return "Social"
-//        case .friend:      return "Friend"
-//        case .work:        return "Work"
-//        case .family:      return "Family"
-//        case .closeFriend: return "Close Friend"
-//        case .service:     return "Service"
-//        }
-//    }
-//    
-//    var color: Color {
-//        switch self {
-//        case .social: return .purple
-//        case .friend: return .orange
-//        case .work: return .cyan
-//        case .family: return .pink
-//        case .closeFriend: return .green
-//        case .service: return .yellow
-//        }
-//    }
-//    
-//    var shortLabel: String {
-//        switch self {
-//        case .social: return "Sc"
-//        case .friend: return "Fr"
-//        case .work: return "Wo"
-//        case .family: return "Fm"
-//        case .closeFriend: return "CF"
-//        case .service: return "Sr"
-//        }
-//    }
-//    
-//    static let allCases: [Relationship] = [
-//        .closeFriend, .family, .friend, .work, .social, .service
-//    ]
-//}
-
-
-// data
-//var ayuk = Contact(firstName: "Ayu", lastName: "Juliana", imageName: "ayuk", relationship: .family, memoryCue: "my profile", phoneNumber: "+6281199912", isMe: true)
-//
-//var fharles = Contact(firstName: "Fharles", lastName: "Leclerc", imageName: "ayuk", relationship: .friend, memoryCue: "my friend", phoneNumber: "+6281199912", isMe: false)
-//
-//var nana = Contact(firstName: "Nana", lastName: "Leclerc", imageName: "ayuk", relationship: .social, memoryCue: "meet at paddle event", phoneNumber: "+6281199912", isMe: false)
-//
-//var falen = Contact(firstName: "Falen", lastName: "Cia", imageName: "ayuk", relationship: .work, memoryCue: "people ADA 2026", phoneNumber: "+6281199912", isMe: false)
-//
-//var falus = Contact(firstName: "Falus", lastName: "Cia", imageName: "ayuk", relationship: .family, memoryCue: "my sister", phoneNumber: "+6281199912", isMe: false)
-//
-//var aya = Contact(firstName: "Ayana", lastName: "Ani", imageName: "ayuk", relationship: .closeFriend, memoryCue: "bestise SHS", phoneNumber: "+6281199912", isMe: false)
-//
-//var bunana = Contact(firstName: "Bunana", lastName: "Warung", imageName: "ayuk", relationship: .service, memoryCue: "warung bunana jimbaran", phoneNumber: "+6281199912", isMe: false)
-//
-//var contacts = [ayuk, fharles, falen, nana, falus, aya, bunana]
-//    .sorted { $0.firstName < $1.firstName }
-
-
 struct ContactCardView: View {
     var contact: Contact
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            
-            // photo
-            Image(contact.imageName)
-                .resizable()
-                .scaledToFill()
-                .frame(height: 180)
-                .frame(maxWidth: .infinity)
-                .clipped()
-                .cornerRadius(20)
-            
-            // overlay text
-            LinearGradient(
-                gradient: Gradient(colors: [.clear, .black.opacity(0.4)]),
-                startPoint: .center,
-                endPoint: .bottom
-            )
-            .cornerRadius(18)
-            
-            // name + badge (relationship)
-            HStack {
-                Text(contact.firstName)
-                    .font(.headline)
-                    .foregroundColor(.black)
-                
-                Spacer()
-                
-                Text(contact.relationship.shortLabel)
-                    .font(.caption2)
-                    .padding(6)
-                    .background(contact.relationship.color)
-                    .clipShape(Circle())
+        GeometryReader { geo in
+            ZStack(alignment: .bottomLeading) {
+                if let data = contact.photoData,
+                   let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geo.size.width, height: 180)
+                        .clipped()
+                } else {
+                    Image(contact.imageName)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geo.size.width, height: 180)
+                        .clipped()
+                }
+
+                LinearGradient(
+                    gradient: Gradient(colors: [.clear, .black.opacity(0.4)]),
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+
+                HStack {
+                    Text(contact.firstName)
+                        .font(.headline)
+                        .foregroundColor(.black)
+                    Spacer()
+                    Text(contact.relationship.shortLabel)
+                        .font(.caption2)
+                        .padding(6)
+                        .background(contact.relationship.color)
+                        .clipShape(Circle())
+                }
+                .padding(10)
             }
-            .padding(10)
+            .frame(width: geo.size.width, height: 180)
+            .cornerRadius(20)
+            .clipped()
         }
+        .frame(height: 180)
         .overlay(alignment: .top) {
             MemoryBubble(text: contact.memoryCue)
         }
@@ -190,29 +111,32 @@ struct Triangle: Shape {
 
 struct ContentView: View {
     let columns = [
-        GridItem(.flexible()),
-        GridItem(.flexible())
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
     ]
-
-    //State filter. nil = tampilkan semua
+    
+    //pakai @State, bukan contacts global
+    @State private var contactList: [Contact] = [ayuk, fharles, falen, nana, falus, aya, bunana]
+        .sorted { $0.firstName < $1.firstName }
+    
     @State private var selectedRelationship: Relationship? = nil
-    //State searching
     @State private var searchText: String = ""
-
+    @State private var showAddContact = false
+    
+    // pakai contactList
     var meContact: Contact? {
-        contacts.first { $0.isMe }
+        contactList.first { $0.isMe }
     }
-
+    
     var otherContacts: [Contact] {
-        contacts.filter { !$0.isMe }
+        contactList.filter { !$0.isMe }
     }
-
-    // Contact yang sudah difilter (atau semua kalau nil)
+    
     var filteredContacts: [Contact] {
         guard let selected = selectedRelationship else { return otherContacts }
         return otherContacts.filter { $0.relationship == selected }
     }
-
+    
     var searchedContacts: [Contact] {
         guard !searchText.isEmpty else { return filteredContacts }
         return filteredContacts.filter {
@@ -220,27 +144,21 @@ struct ContentView: View {
         }
     }
     
-    // Pakai filteredContacts, bukan otherContacts langsung
     var groupedContacts: [String: [Contact]] {
         Dictionary(grouping: searchedContacts) { $0.sectionTitle }
     }
-
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-
-                    if let me = meContact {
-                        MyCardView(me: me)
+                    
+                    if let meIndex = contactList.firstIndex(where: { $0.isMe }) {
+                        MyCardView(me: $contactList[meIndex])
                             .padding(.horizontal)
                     }
-
-                    // chip filter
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-
-                            // Chip "All" untuk reset filter
                             Button {
                                 selectedRelationship = nil
                             } label: {
@@ -251,37 +169,46 @@ struct ContentView: View {
                                     .padding(.vertical, 6)
                                     .background(
                                         selectedRelationship == nil
-                                            ? Color.primary
-                                            : Color.primary.opacity(0.1)
+                                        ? Color.primary
+                                        : Color.primary.opacity(0.1)
                                     )
                                     .clipShape(Capsule())
                             }
-
+                            
                             ForEach(Relationship.allCases, id: \.label) { rel in
                                 RelationshipFilterChip(
                                     relationship: rel,
                                     isSelected: selectedRelationship == rel
                                 ) {
-                                    // Tap chip yang sama for back to all
                                     selectedRelationship = selectedRelationship == rel ? nil : rel
                                 }
                             }
                         }
                         .padding(.horizontal)
                     }
-
-                    // Grid image
+                    
                     ForEach(groupedContacts.keys.sorted(), id: \.self) { key in
                         Text(key)
                             .font(.title2.bold())
                             .padding(.horizontal)
-
+                        
                         Divider()
                             .padding(.horizontal)
-
+                        
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(groupedContacts[key]!) { contact in
-                                ContactCardView(contact: contact)
+                                if let index = contactList.firstIndex(where: { $0.id == contact.id }) {
+                                    NavigationLink(destination: DetailContactView(
+                                        contact: $contactList[index],
+                                        onDelete: {
+                                            contactList.remove(at: index)
+                                        }
+                                    )) {
+                                        ContactCardView(contact: contact)
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
                         }
                         .padding(.horizontal)
@@ -296,63 +223,87 @@ struct ContentView: View {
                 DefaultToolbarItem(kind: .search, placement: .bottomBar)
                 ToolbarSpacer(.flexible, placement: .bottomBar)
                 ToolbarItem(placement: .bottomBar) {
-                    Button { print("test") } label: {
+                    Button {
+                        showAddContact = true
+                    } label: {
                         Image(systemName: "plus")
                     }
                 }
+            }
+            // pass $contactList ke AddContactView
+            .sheet(isPresented: $showAddContact) {
+                AddContactView(contacts: $contactList)
             }
             .animation(.easeInOut(duration: 0.2), value: selectedRelationship)
         }
     }
 }
-    
+
 
 struct MyCardView: View {
-    var me: Contact  // parameter contact to know this is me or no
+    @Binding var me: Contact
 
     var body: some View {
-        HStack(spacing: 16) {
-            Image(me.imageName)         // pakai data dari contact
-                .resizable()
-                .scaledToFill()
-                .frame(width: 70, height: 70)
-                .clipShape(Circle())
+        VStack(alignment: .leading, spacing: 12) {
+            NavigationLink(destination: MyProfileDetailView(me: $me)) {
+                HStack(spacing: 10) {
+                    if let data = me.photoData,
+                       let uiImage = UIImage(data: data) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 70, height: 70)
+                            .clipShape(Circle())
+                    } else {
+                        Image(me.imageName)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 70, height: 70)
+                            .clipShape(Circle())
+                    }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(me.fullName)       // nama dari data
-                    .font(.title3.bold())
-
-                Text(me.memoryCue)     // memoryCue sebagai subtitle
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(me.fullName)
+                            .font(.title3.bold())
+                            .foregroundColor(.primary)
+                        Text(me.memoryCue)
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal, 0)
             }
+            .buttonStyle(.plain)
+            Spacer() //make a space after the mycard profile
 
-            Spacer()
+            VStack(alignment: .leading, spacing: 2) {
+                Text("People")
+                    .font(.title3.bold())
+                Text("Sorted by relationship")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
         }
-        .cornerRadius(16)
 
-        VStack(alignment: .leading) {
-            Text("People")
-                .font(.title3.bold())
-
-            Text("Sorted by relationship")
-                .font(.subheadline)
-        }
+        .padding(.horizontal, 0)
     }
 }
-
 struct RelationshipFilterChip: View {
     var relationship: Relationship
     var isSelected: Bool
     var onTap: () -> Void
-
+    
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 4) {
                 Circle()
                     .fill(relationship.color)
                     .frame(width: 8, height: 8)
-
+                
                 Text(relationship.label)
                     .font(.caption.weight(.medium))
                     .foregroundColor(isSelected ? .white : .primary)
@@ -361,8 +312,8 @@ struct RelationshipFilterChip: View {
             .padding(.vertical, 6)
             .background(
                 isSelected
-                    ? relationship.color
-                    : relationship.color.opacity(0.12)
+                ? relationship.color
+                : relationship.color.opacity(0.12)
             )
             .clipShape(Capsule())
         }
@@ -370,5 +321,5 @@ struct RelationshipFilterChip: View {
 }
 
 #Preview {
-        ContentView()
-    }
+    ContentView()
+}

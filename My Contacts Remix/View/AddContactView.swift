@@ -1,33 +1,31 @@
 //
-//  EditContactView.swift
+//  AddProfileScreen.swift
 //  My Contacts Remix
 //
-//  Created by Ni Komang Ayu Juliana on 22/04/26.
+//  Created by Ni Komang Ayu Juliana on 21/04/26.
 //
 
 import SwiftUI
 import PhotosUI
 
-struct EditContactView: View {
+struct AddContactView: View {
     @Environment(\.dismiss) var dismiss
-    @Binding var contact: Contact
-    var onDelete: (() -> Void)?
-    @State private var showDeleteAlert = false
-    
-    // state temporary — diisi dari data contact yang ada
+
+    // ← TAMBAH: binding ke contactList milik ContentView
+    @Binding var contacts: [Contact]
+
+    @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var profileImage: Image? = nil
+    @State private var photoData: Data? = nil
     @State private var firstName: String = ""
     @State private var lastName: String = ""
     @State private var phoneNumber: String = ""
     @State private var memoryCue: String = ""
     @State private var selectedRelationship: Relationship = .friend
-    @State private var selectedItem: PhotosPickerItem? = nil
-    @State private var profileImage: Image? = nil
-    @State private var photoData: Data? = nil
-    
+
     var body: some View {
         NavigationStack {
             Form {
-                // foto
                 Section {
                     HStack {
                         Spacer()
@@ -49,9 +47,9 @@ struct EditContactView: View {
                                             .foregroundStyle(Color(.systemGray3))
                                     )
                             }
-                            
-                            PhotosPicker(selection: $selectedItem, matching: .images) {
-                                Text("Change Photo")
+
+                            PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
+                                Text("Add Photo")
                                     .fontWeight(.semibold)
                                     .foregroundStyle(Color.black)
                                     .padding(8)
@@ -71,46 +69,51 @@ struct EditContactView: View {
                     }
                 }
                 .listRowBackground(Color.clear)
-                
+
                 Section {
                     TextField("First Name", text: $firstName)
                     TextField("Last Name", text: $lastName)
                 }
-                
+
                 Section {
                     TextField("Phone Number", text: $phoneNumber)
                         .keyboardType(.phonePad)
                 }
-                
+
                 Section {
                     Picker(selection: $selectedRelationship) {
-                        ForEach(Relationship.allCases, id: \.self) { rel in
+                        ForEach(Relationship.allCases, id: \.label) { rel in
                             HStack {
-                                Circle().fill(rel.color).frame(width: 10, height: 10)
+                                Circle()
+                                    .fill(rel.color)
+                                    .frame(width: 10, height: 10)
                                 Text(rel.label)
                             }
                             .tag(rel)
                         }
                     } label: {
                         HStack(spacing: 6) {
-                            Text("Relationship").foregroundStyle(Color.gray)
+                            Text("Relationship")
+                                .foregroundStyle(Color.gray)
+                                .opacity(0.5)
                             Spacer()
-                            Circle().fill(selectedRelationship.color).frame(width: 10, height: 10)
+                            Circle()
+                                .fill(selectedRelationship.color)
+                                .frame(width: 10, height: 10)
                         }
                     }
                 }
-                
+
                 Section {
                     TextField("Memory Cue", text: $memoryCue)
                 }
-                
             }
-            .navigationTitle("Edit Contact")
+            .navigationTitle("New Contact")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
-                        dismiss()
+                        dismiss()  // ← tutup sheet, kembali ke ContentView
                     } label: {
                         Image(systemName: "xmark")
                     }
@@ -118,73 +121,35 @@ struct EditContactView: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        saveEdit()
-                        dismiss()
+                        saveContact()  // ← simpan dulu
+                        dismiss()      // ← baru tutup sheet
                     } label: {
                         Image(systemName: "checkmark")
                     }
+                    .tint(.gray)
                     .disabled(firstName.isEmpty)
+                    .disabled(phoneNumber.isEmpty)// ← tidak bisa save kalau blm
                 }
-
-                // ← hanya muncul kalau onDelete tidak nil
-                if onDelete != nil {
-                    ToolbarItem(placement: .bottomBar) {
-                        Button(role: .destructive) {
-                            showDeleteAlert = true
-                        } label: {
-                            Text("Delete Contact")
-                                .foregroundStyle(.red)
-                                .padding(6)
-                        }
-                    }
-                }
-            }
-            .alert("Delete Contact?", isPresented: $showDeleteAlert) {
-                Button("Delete", role: .destructive) {
-                    onDelete?()
-                    dismiss()
-                }
-                Button("Cancel", role: .cancel) { }
-            } message: {
-                Text("\(contact.fullName) will be deleted.")
-            }
-            
-        }
-        
-        // isi field dari data contact yang ada saat view muncul
-        .onAppear {
-            firstName = contact.firstName
-            lastName = contact.lastName
-            phoneNumber = contact.phoneNumber
-            memoryCue = contact.memoryCue
-            selectedRelationship = contact.relationship
-            photoData = contact.photoData
-            if let data = contact.photoData,
-               let uiImage = UIImage(data: data) {
-                profileImage = Image(uiImage: uiImage)
-            } else if !contact.imageName.isEmpty {
-                profileImage = Image(contact.imageName)
             }
         }
     }
-    
-    func saveEdit() {
-        contact.firstName = firstName        // ← tulis langsung ke binding
-        contact.lastName = lastName
-        contact.phoneNumber = phoneNumber
-        contact.memoryCue = memoryCue
-        contact.relationship = selectedRelationship
-        if let newData = photoData {
-            contact.photoData = newData      // ← update foto kalau ada yang baru
-        }
+
+    func saveContact() {
+        let newContact = Contact(
+            firstName: firstName,
+            lastName: lastName,
+            imageName: "",
+            photoData: photoData,
+            relationship: selectedRelationship,
+            memoryCue: memoryCue,
+            phoneNumber: phoneNumber,
+            isMe: false,
+        )
+        contacts.append(newContact)  // ContentView langsung update
     }
 }
 
+// dummy binding untuk preview
 #Preview {
-    EditContactView(
-        contact: .constant(fharles),
-        onDelete: { }  // ← closure kosong untuk preview
-    )
+    AddContactView(contacts: .constant([]))
 }
-
-
