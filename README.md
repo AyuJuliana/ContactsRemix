@@ -1,6 +1,5 @@
 # 📱 ContactsRemix
 
-**English:**
 ContactsRemix is an iOS application project built with **Swift and Xcode**, focusing on implementing a contacts-based mobile application.
 
 ## 🛠️ Tech Stack
